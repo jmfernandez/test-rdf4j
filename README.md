@@ -1,8 +1,8 @@
 # Testing RDF4J
 
-This is a test project, checking different RDF4J technologies and APIs, like SAIL Native triplestore (for persistence and better scalability) and RIO (for RDF/XML or OWL import).
+This is a test project, checking different RDF4J technologies and APIs, like SAIL Native triplestore (for persistence and better scalability), RIO (for RDF/XML or OWL import) and its SPARQL query capabilities over the native triplestore.
 
-In order to test it, you need Maven. To compile and test it, you have to clone it and run next commands:
+In order to test all of these, you need Maven to compile and assemble the project, once you have cloned it. Once cloned, you have to run next commands:
 
 ```bash
 mvn clean package appassembler:assemble

@@ -15,9 +15,18 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.xml.bind.DatatypeConverter;
+
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
+import org.eclipse.rdf4j.model.Value;
+
+import org.eclipse.rdf4j.query.TupleQuery;
+import org.eclipse.rdf4j.query.TupleQueryResult;
+import org.eclipse.rdf4j.query.BindingSet;
+import org.eclipse.rdf4j.query.QueryLanguage;
 
 import org.eclipse.rdf4j.RDF4JException;
 
@@ -89,7 +98,7 @@ public final class OWLLoader {
 		Repository repo = manager.getRepository(repId);
 		
 		if(!repo.isInitialized()) {
-			repo.initialize();
+			repo.init();
 		}
 		
 		URL ontoURL = new URL(ontoStr);
@@ -113,13 +122,6 @@ public final class OWLLoader {
 		
 		return repo;
 	}
-	
-	private final static String[] ontologyURIs = {
-		"http://purl.obolibrary.org/obo/obi/2018-08-27/obi.owl",
-		"http://purl.obolibrary.org/obo/cl/releases/2018-07-07/cl.owl",
-		"https://www.ebi.ac.uk/efo/releases/v2018-02-15/efo.owl",
-		"http://purl.obolibrary.org/obo/uberon/releases/2018-07-30/uberon.owl"
-	};
 	
 	// This manages redirects, inspired in https://stackoverflow.com/a/26046079
 	public final static HttpURLConnection getURLConnection(URL resourceUrl)
@@ -180,8 +182,91 @@ public final class OWLLoader {
 			LocalRepositoryManager manager = new LocalRepositoryManager(baseDir);
 			manager.initialize();
 			
-			for(String ontoURIStr: ontologyURIs) {
-				Repository repo = initializeRepo(manager,ontoURIStr);
+			SimpleValueFactory svf = SimpleValueFactory.getInstance();
+			
+			
+			Repository repo;
+			String ontoURIStr;
+			
+			System.out.println("First");
+			ontoURIStr = "https://www.ebi.ac.uk/efo/releases/v2018-02-15/efo.owl";
+			repo = initializeRepo(manager,ontoURIStr);
+			try {
+				try(RepositoryConnection con = repo.getConnection()) {
+					System.err.println(ontoURIStr + " Size: "+con.size());
+					
+					TupleQuery tupleQuery;
+					TupleQueryResult result;
+					
+					// Match by IRI
+					System.out.println("\tSearch by IRI");
+					String queryStringIRI = "SELECT ?q WHERE {\n"+
+					"{ ?q rdf:type owl:Class }\n"+
+					"UNION\n"+
+					"{ ?q rdf:type rdfs:Class }\n"+
+					"} ";
+					
+					tupleQuery = con.prepareTupleQuery(QueryLanguage.SPARQL, queryStringIRI);
+					tupleQuery.setBinding("q",svf.createIRI("http://www.ebi.ac.uk/efo/EFO_0003042"));
+					
+					result = tupleQuery.evaluate();
+					try(TupleQueryResult tupleRes = tupleQuery.evaluate()) {
+						while(tupleRes.hasNext()) {  // iterate over the result
+							BindingSet bindingSet = tupleRes.next();
+							Value valueOfQ = bindingSet.getValue("q");
+							System.out.println("\t\t"+valueOfQ.stringValue());
+						}
+					}
+					
+					// Match by suffix
+					System.out.println("\tSearch by IRI suffix");
+					String queryStringSuf = "SELECT ?x WHERE {\n"+
+					"{ ?x rdf:type owl:Class }\n"+
+					"UNION\n"+
+					"{ ?x rdf:type rdfs:Class }\n"+
+					"FILTER strends(str(?x),?q) .\n"+
+					"} ";
+					
+					tupleQuery = con.prepareTupleQuery(QueryLanguage.SPARQL, queryStringSuf);
+					tupleQuery.setBinding("q",svf.createLiteral("EFO_0003042"));
+					
+					result = tupleQuery.evaluate();
+					try(TupleQueryResult tupleRes = tupleQuery.evaluate()) {
+						while(tupleRes.hasNext()) {  // iterate over the result
+							BindingSet bindingSet = tupleRes.next();
+							Value valueOfX = bindingSet.getValue("x");
+							System.out.println("\t\t"+valueOfX.stringValue());
+						}
+					}
+					
+					// Negative match by suffix
+					System.out.println("\tSearch by IRI suffix (no result)");
+					
+					tupleQuery = con.prepareTupleQuery(QueryLanguage.SPARQL, queryStringSuf);
+					tupleQuery.setBinding("q",svf.createLiteral("EFO_000304"));
+					
+					result = tupleQuery.evaluate();
+					try(TupleQueryResult tupleRes = tupleQuery.evaluate()) {
+						while(tupleRes.hasNext()) {  // iterate over the result
+							BindingSet bindingSet = tupleRes.next();
+							Value valueOfX = bindingSet.getValue("x");
+							System.out.println("\t\t"+valueOfX.stringValue());
+						}
+					}
+					
+				} catch(RDF4JException e) {
+					// handle exception. This catch-clause is
+					// optional since rdf4jException is an unchecked exception
+					throw e;
+				}
+			} finally {
+				repo.shutDown();
+			}
+			
+			System.out.println("Second");
+			ontoURIStr = "http://purl.obolibrary.org/obo/cl/releases/2018-07-07/cl.owl";
+			repo = initializeRepo(manager,ontoURIStr);
+			try {
 				try(RepositoryConnection con = repo.getConnection()) {
 					System.err.println(ontoURIStr + " Size: "+con.size());
 				} catch(RDF4JException e) {
@@ -189,6 +274,84 @@ public final class OWLLoader {
 					// optional since rdf4jException is an unchecked exception
 					throw e;
 				}
+			} finally {
+				repo.shutDown();
+			}
+			
+			System.out.println("Third");
+			ontoURIStr = "http://purl.obolibrary.org/obo/uberon/releases/2018-07-30/uberon.owl";
+			repo = initializeRepo(manager,ontoURIStr);
+			try {
+				try(RepositoryConnection con = repo.getConnection()) {
+					System.err.println(ontoURIStr + " Size: "+con.size());
+				} catch(RDF4JException e) {
+					// handle exception. This catch-clause is
+					// optional since rdf4jException is an unchecked exception
+					throw e;
+				}
+			} finally {
+				repo.shutDown();
+			}
+			
+			System.out.println("Fourth");
+			ontoURIStr = "http://purl.obolibrary.org/obo/obi/2018-08-27/obi.owl";
+			repo = initializeRepo(manager,ontoURIStr);
+			try {
+				try(RepositoryConnection con = repo.getConnection()) {
+					System.err.println(ontoURIStr + " Size: "+con.size());
+					
+					TupleQuery tupleQuery;
+					TupleQueryResult result;
+					
+					// Match by label
+					System.out.println("\tSearch by label");
+					String queryStringLab = "SELECT ?x WHERE {\n"+
+					"?x rdfs:label ?q .\n" +
+					"{ ?x rdf:type owl:Class }\n"+
+					"UNION\n"+
+					"{ ?x rdf:type rdfs:Class } .\n"+
+					"} ";
+					
+					tupleQuery = con.prepareTupleQuery(QueryLanguage.SPARQL, queryStringLab);
+					tupleQuery.setBinding("q",svf.createLiteral("ChIP-seq assay"));
+					
+					result = tupleQuery.evaluate();
+					try(TupleQueryResult tupleRes = tupleQuery.evaluate()) {
+						while(tupleRes.hasNext()) {  // iterate over the result
+							BindingSet bindingSet = tupleRes.next();
+							Value valueOfX = bindingSet.getValue("x");
+							System.out.println("\t\t"+valueOfX.stringValue());
+						}
+					}
+					
+					// Obtain ancestors
+					System.out.println("\tObtain ancestors by label");
+					String queryStringAnc = "SELECT ?x WHERE {\n"+
+					"?i rdfs:label ?q .\n" +
+					"{ ?i rdf:type owl:Class }\n"+
+					"UNION\n"+
+					"{ ?i rdf:type rdfs:Class } .\n"+
+					"?i rdfs:subClassOf* ?x"+
+					"} ";
+					
+					tupleQuery = con.prepareTupleQuery(QueryLanguage.SPARQL, queryStringAnc);
+					tupleQuery.setBinding("q",svf.createLiteral("ChIP-seq assay"));
+					
+					result = tupleQuery.evaluate();
+					try(TupleQueryResult tupleRes = tupleQuery.evaluate()) {
+						while(tupleRes.hasNext()) {  // iterate over the result
+							BindingSet bindingSet = tupleRes.next();
+							Value valueOfX = bindingSet.getValue("x");
+							System.out.println("\t\t"+valueOfX.stringValue());
+						}
+					}
+				} catch(RDF4JException e) {
+					// handle exception. This catch-clause is
+					// optional since rdf4jException is an unchecked exception
+					throw e;
+				}
+			} finally {
+				repo.shutDown();
 			}
 		} catch(Exception e) {
 			e.printStackTrace();
