@@ -264,11 +264,108 @@ public final class OWLLoader {
 			}
 			
 			System.out.println("Second");
+			ontoURIStr = "http://purl.obolibrary.org/obo/cl/cl.owl";
+			repo = initializeRepo(manager,ontoURIStr);
+			try {
+				try(RepositoryConnection con = repo.getConnection()) {
+					System.err.println(ontoURIStr + " Size: "+con.size());
+					
+					TupleQuery tupleQuery;
+					TupleQueryResult result;
+					
+					// Match by IRI
+					System.out.println("\tSearch ontology URI");
+					String queryStringIRI = 
+					"SELECT ?o WHERE {\n"+
+					"?o rdf:type owl:Ontology ."+
+					"} ";
+					
+					tupleQuery = con.prepareTupleQuery(QueryLanguage.SPARQL, queryStringIRI);
+					
+					result = tupleQuery.evaluate();
+					try(TupleQueryResult tupleRes = tupleQuery.evaluate()) {
+						while(tupleRes.hasNext()) {  // iterate over the result
+							BindingSet bindingSet = tupleRes.next();
+							Value valueOfOntology = bindingSet.getValue("o");
+							System.out.println("\t\t"+valueOfOntology.stringValue());
+						}
+					}
+					
+					System.out.println("\tSearch ontology version URI");
+					queryStringIRI = 
+					"SELECT ?o ?oIRI WHERE {\n"+
+					"?o rdf:type owl:Ontology ;"+
+					"  owl:versionIRI ?oIRI ." +
+					"} ";
+					
+					tupleQuery = con.prepareTupleQuery(QueryLanguage.SPARQL, queryStringIRI);
+					
+					result = tupleQuery.evaluate();
+					try(TupleQueryResult tupleRes = tupleQuery.evaluate()) {
+						while(tupleRes.hasNext()) {  // iterate over the result
+							BindingSet bindingSet = tupleRes.next();
+							Value valueOfOntology = bindingSet.getValue("o");
+							Value valueOfVersionIRI = bindingSet.getValue("oIRI");
+							System.out.println("\t\t"+valueOfOntology.stringValue()+" "+valueOfVersionIRI.stringValue());
+						}
+					}
+					
+				} catch(RDF4JException e) {
+					// handle exception. This catch-clause is
+					// optional since rdf4jException is an unchecked exception
+					throw e;
+				}
+			} finally {
+				repo.shutDown();
+			}
+			
+			System.out.println("SecondBis");
 			ontoURIStr = "http://purl.obolibrary.org/obo/cl/releases/2018-07-07/cl.owl";
 			repo = initializeRepo(manager,ontoURIStr);
 			try {
 				try(RepositoryConnection con = repo.getConnection()) {
 					System.err.println(ontoURIStr + " Size: "+con.size());
+					
+					TupleQuery tupleQuery;
+					TupleQueryResult result;
+					
+					// Match by IRI
+					System.out.println("\tSearch ontology URI");
+					String queryStringIRI = 
+					"SELECT ?o WHERE {\n"+
+					"?o rdf:type owl:Ontology ."+
+					"} ";
+					
+					tupleQuery = con.prepareTupleQuery(QueryLanguage.SPARQL, queryStringIRI);
+					
+					result = tupleQuery.evaluate();
+					try(TupleQueryResult tupleRes = tupleQuery.evaluate()) {
+						while(tupleRes.hasNext()) {  // iterate over the result
+							BindingSet bindingSet = tupleRes.next();
+							Value valueOfOntology = bindingSet.getValue("o");
+							System.out.println("\t\t"+valueOfOntology.stringValue());
+						}
+					}
+					
+					System.out.println("\tSearch ontology version URI");
+					queryStringIRI = 
+					"SELECT ?o ?oIRI WHERE {\n"+
+					"?o rdf:type owl:Ontology ;"+
+					"  owl:versionIRI ?oIRI ." +
+					"} ";
+					
+					tupleQuery = con.prepareTupleQuery(QueryLanguage.SPARQL, queryStringIRI);
+					
+					result = tupleQuery.evaluate();
+					try(TupleQueryResult tupleRes = tupleQuery.evaluate()) {
+						while(tupleRes.hasNext()) {  // iterate over the result
+							BindingSet bindingSet = tupleRes.next();
+							Value valueOfOntology = bindingSet.getValue("o");
+							Value valueOfVersionIRI = bindingSet.getValue("oIRI");
+							System.out.println("\t\t"+valueOfOntology.stringValue()+" "+valueOfVersionIRI.stringValue());
+						}
+					}
+					
 				} catch(RDF4JException e) {
 					// handle exception. This catch-clause is
 					// optional since rdf4jException is an unchecked exception
